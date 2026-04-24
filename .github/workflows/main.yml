@@ -33,7 +33,7 @@ jobs:
             -dname "CN=Pelican,O=Pelican,C=IN"
 
       - name: Build Release APK
-        run: gradle assembleRelease
+        run: gradlew :app:assembleRelease
         env:
           KEYSTORE_PASSWORD: pelican2024
           KEY_ALIAS: pelican
