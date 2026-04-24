@@ -1,0 +1,2374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AV/VC Project Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --sidebar-bg: #0d1b2a;
+  --sidebar-hover: #1a2d42;
+  --sidebar-active: #1e3a5f;
+  --accent: #f59e0b;
+  --accent-dark: #d97706;
+  --accent-light: #fef3c7;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --info: #3b82f6;
+  --info-bg: #dbeafe;
+  --purple: #8b5cf6;
+  --purple-bg: #ede9fe;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
+  --sidebar-width: 240px;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.6; overflow-x: hidden; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; }
+
+/* ============================================================
+   LOADING OVERLAY
+   ============================================================ */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--sidebar-bg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  transition: opacity 0.4s ease;
+}
+.loading-overlay.fade-out { opacity: 0; pointer-events: none; }
+.loading-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.loading-logo-icon {
+  width: 48px; height: 48px;
+  background: var(--accent);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.loading-logo-text { color: #fff; font-size: 1.3rem; font-weight: 700; }
+.loading-sub { color: rgba(255,255,255,0.4); font-size: 0.8rem; font-family: var(--font-mono); letter-spacing: 0.1em; }
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(245,158,11,0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-msg { color: rgba(255,255,255,0.5); font-size: 0.82rem; font-family: var(--font-mono); }
+
+/* ============================================================
+   SETUP SCREEN
+   ============================================================ */
+.setup-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--sidebar-bg);
+  z-index: 9998;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.setup-screen.open { display: flex; }
+.setup-card {
+  background: #132336;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+}
+.setup-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.setup-logo-icon { width: 44px; height: 44px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.setup-logo-text { color: #fff; font-size: 1.1rem; font-weight: 700; }
+.setup-logo-sub { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.setup-title { color: #fff; font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+.setup-desc { color: rgba(255,255,255,0.5); font-size: 0.85rem; line-height: 1.7; margin-bottom: 24px; }
+.setup-steps { margin-bottom: 28px; }
+.setup-step {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.setup-step:last-child { border-bottom: none; }
+.step-num {
+  width: 26px; height: 26px;
+  background: var(--accent);
+  color: #0d1b2a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.step-text { color: rgba(255,255,255,0.7); font-size: 0.83rem; line-height: 1.6; }
+.step-text strong { color: #fff; }
+.setup-input-group { margin-bottom: 16px; }
+.setup-input-label { color: rgba(255,255,255,0.6); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: block; font-family: var(--font-mono); }
+.setup-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.setup-input:focus { border-color: var(--accent); background: rgba(245,158,11,0.05); }
+.setup-input::placeholder { color: rgba(255,255,255,0.25); }
+.setup-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  color: #0d1b2a;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.setup-btn:hover { background: var(--accent-dark); }
+.setup-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.setup-error { color: #fc8181; font-size: 0.8rem; margin-top: 10px; padding: 10px 14px; background: rgba(239,68,68,0.1); border-radius: 6px; border: 1px solid rgba(239,68,68,0.2); display: none; }
+.setup-error.show { display: block; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; transition: transform 0.3s ease; overflow-y: auto; }
+.sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.logo-mark { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logo-icon svg { color: #0d1b2a; }
+.logo-text { color: #fff; font-weight: 700; font-size: 0.95rem; letter-spacing: 0.02em; line-height: 1.2; }
+.logo-sub { color: rgba(255,255,255,0.4); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--font-mono); }
+.sidebar-nav { padding: 12px 0; flex: 1; }
+.nav-section-label { color: rgba(255,255,255,0.3); font-size: 0.63rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; padding: 14px 20px 6px; font-family: var(--font-mono); }
+.nav-item { display: flex; align-items: center; gap: 11px; padding: 9px 20px; color: rgba(255,255,255,0.55); font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; margin: 1px 0; }
+.nav-item:hover { background: var(--sidebar-hover); color: rgba(255,255,255,0.85); }
+.nav-item.active { background: var(--sidebar-active); color: #fff; border-left-color: var(--accent); }
+.nav-item svg { flex-shrink: 0; width: 17px; height: 17px; }
+.sidebar-footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+.sidebar-gs-btn { display: flex; align-items: center; gap: 8px; width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 10px; color: rgba(255,255,255,0.5); font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
+.sidebar-gs-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
+.main-content { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* TOPBAR */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.hamburger { display: none; background: none; border: none; color: var(--text-secondary); padding: 4px; }
+.page-title { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-date { display: flex; align-items: center; gap: 6px; background: var(--accent-light); color: var(--accent-dark); font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; font-family: var(--font-mono); }
+
+/* Sync Status */
+.sync-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; font-family: var(--font-mono); transition: all 0.3s; }
+.sync-status.idle { background: var(--success-bg); color: var(--success); }
+.sync-status.syncing { background: var(--warning-bg); color: var(--accent-dark); }
+.sync-status.error { background: var(--danger-bg); color: var(--danger); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.sync-dot.pulse { animation: pulse 1s ease infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+.page-content { padding: 28px; flex: 1; }
+
+/* ============================================================
+   SECTIONS
+   ============================================================ */
+.section { display: none; }
+.section.active { display: block; }
+
+/* CARDS */
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid var(--border); padding: 22px; }
+.card-sm { padding: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.card-title { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.card-title svg { color: var(--accent); }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); display: flex; align-items: flex-start; gap: 14px; transition: box-shadow 0.2s; }
+.stat-card:hover { box-shadow: var(--shadow); }
+.stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stat-info { flex: 1; }
+.stat-value { font-size: 1.75rem; font-weight: 700; font-family: var(--font-mono); line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; border: none; transition: all 0.15s; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #0d1b2a; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-secondary { background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); color: var(--text-primary); }
+.btn-danger { background: var(--danger-bg); color: var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+.btn-ghost { background: none; border: none; color: var(--text-muted); padding: 5px; border-radius: var(--radius-sm); }
+.btn-ghost:hover { color: var(--text-primary); background: var(--surface-2); }
+
+/* FORMS */
+.form-group { margin-bottom: 16px; }
+.form-row { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+.form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; letter-spacing: 0.02em; text-transform: uppercase; }
+input[type="text"], input[type="number"], input[type="date"], input[type="file"], textarea, select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--text-primary); background: var(--surface); transition: border-color 0.15s; outline: none; }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 80px; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6,9 12,15 18,9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+
+/* MODALS */
+.modal-overlay { position: fixed; inset: 0; background: rgba(13,27,42,0.6); backdrop-filter: blur(3px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; animation: modalSlide 0.2s ease; }
+.modal-lg { max-width: 800px; }
+@keyframes modalSlide { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-size: 1.05rem; font-weight: 700; }
+.modal-close { background: var(--surface-2); border: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.modal-close:hover { background: var(--danger-bg); color: var(--danger); }
+.modal-body { padding: 0 24px; }
+.modal-footer { padding: 20px 24px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border); margin-top: 20px; }
+
+/* STATUS BADGES */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-survey { background: #e0f2fe; color: #0369a1; }
+.badge-design { background: var(--purple-bg); color: var(--purple); }
+.badge-boq { background: #fef9c3; color: #854d0e; }
+.badge-execution { background: var(--warning-bg); color: var(--accent-dark); }
+.badge-completed { background: var(--success-bg); color: var(--success); }
+.badge-pending { background: var(--danger-bg); color: var(--danger); }
+.badge-inprogress { background: var(--warning-bg); color: var(--accent-dark); }
+.badge-done { background: var(--success-bg); color: var(--success); }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+thead th { background: var(--surface-2); padding: 10px 14px; text-align: left; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--surface-2); }
+.td-mono { font-family: var(--font-mono); font-size: 0.82rem; }
+
+/* PROJECT CARDS */
+.project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-top: 18px; }
+.project-card { background: var(--surface); border-radius: var(--radius); border: 1.5px solid var(--border); padding: 20px; box-shadow: var(--shadow-sm); transition: all 0.2s; cursor: pointer; }
+.project-card:hover { box-shadow: var(--shadow); border-color: var(--accent); transform: translateY(-2px); }
+.project-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.project-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+.project-client { font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+.project-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.project-meta-item { display: flex; align-items: center; gap: 5px; font-size: 0.77rem; color: var(--text-secondary); }
+.project-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+/* TOOLBAR */
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.search-box { position: relative; flex: 1; min-width: 200px; }
+.search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 15px; height: 15px; }
+.search-box input { padding-left: 34px; background: var(--surface); }
+.filter-select { width: auto; min-width: 140px; padding: 8px 30px 8px 12px; }
+
+/* PROGRESS BAR */
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.4s ease; }
+
+/* TASKS */
+.task-list { display: flex; flex-direction: column; gap: 8px; }
+.task-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: all 0.15s; }
+.task-item:hover { border-color: var(--accent); }
+.task-item.done { opacity: 0.6; }
+.task-check { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+.task-check.checked { background: var(--success); border-color: var(--success); color: #fff; }
+.task-name { flex: 1; font-size: 0.875rem; font-weight: 500; }
+.task-assignee { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+/* REPORTS */
+.report-timeline { position: relative; padding-left: 24px; }
+.report-timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 0; width: 2px; background: var(--border); }
+.report-item { position: relative; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm); }
+.report-item::before { content: ''; position: absolute; left: -21px; top: 16px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+.report-date { font-size: 0.75rem; font-weight: 700; color: var(--accent-dark); font-family: var(--font-mono); margin-bottom: 8px; }
+.report-section { margin-bottom: 10px; }
+.report-section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; margin-bottom: 3px; }
+.report-section-text { font-size: 0.85rem; }
+
+/* IMAGES */
+.img-gallery { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.img-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); border: 2px solid var(--border); cursor: pointer; transition: border-color 0.15s; }
+.img-thumb:hover { border-color: var(--accent); }
+.upload-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; transition: all 0.15s; color: var(--text-muted); font-size: 0.85rem; }
+.upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
+.upload-area input { display: none; }
+
+/* BOQ */
+.boq-total-row td { font-weight: 700; background: var(--accent-light); font-family: var(--font-mono); }
+.boq-input { width: 100%; border: none; background: transparent; font-family: inherit; font-size: 0.85rem; color: var(--text-primary); padding: 4px 6px; border-radius: 4px; }
+.boq-input:focus { background: var(--accent-light); outline: none; border: 1.5px solid var(--accent); }
+.boq-input[type="number"] { font-family: var(--font-mono); text-align: right; }
+
+/* COMPONENT TAGS */
+.component-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.comp-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary); }
+.comp-tag button { background: none; border: none; color: var(--text-muted); padding: 0; line-height: 1; font-size: 12px; cursor: pointer; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+.empty-state svg { margin-bottom: 14px; color: var(--border); }
+.empty-state h3 { font-size: 1rem; color: var(--text-secondary); margin-bottom: 6px; }
+
+/* ACTIVITY */
+.activity-list { display: flex; flex-direction: column; gap: 0; }
+.activity-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.activity-item:last-child { border-bottom: none; }
+.activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.activity-text { flex: 1; font-size: 0.83rem; }
+.activity-time { font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); white-space: nowrap; }
+
+/* DETAIL VIEW */
+.detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.back-btn { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; background: none; border: none; padding: 6px 10px; border-radius: var(--radius-sm); transition: all 0.15s; }
+.back-btn:hover { background: var(--border); color: var(--text-primary); }
+.detail-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
+.detail-tab { padding: 10px 18px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.15s; }
+.detail-tab.active { color: var(--accent-dark); border-bottom-color: var(--accent); }
+.detail-tab-content { display: none; }
+.detail-tab-content.active { display: block; }
+
+/* DIAGRAM */
+.diagram-canvas { width: 100%; min-height: 220px; border: 2px dashed var(--border); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; overflow: hidden; background: linear-gradient(135deg, var(--surface-2) 0%, #f0f4f8 100%); }
+.diagram-canvas img { max-width: 100%; max-height: 400px; border-radius: var(--radius-sm); }
+.diagram-placeholder { text-align: center; color: var(--text-muted); }
+
+/* TOAST */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--text-primary); color: #fff; padding: 12px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 10px; animation: toastIn 0.2s ease; max-width: 300px; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+@keyframes toastIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* MEMBER CHIPS */
+.avatar-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.avatar-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; background: var(--sidebar-bg); color: #fff; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+.member-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.member-cb { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+.member-cb input { display: none; }
+.member-cb.checked { background: var(--sidebar-bg); color: #fff; border-color: var(--sidebar-bg); }
+
+/* MISC */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+.section-heading { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+.section-sub { font-size: 0.85rem; color: var(--text-muted); }
+.required { color: var(--danger); }
+.info-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.info-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; min-width: 110px; }
+.info-value { font-size: 0.875rem; }
+.mt-2 { margin-top: 12px; }
+.mt-3 { margin-top: 18px; }
+.mb-2 { margin-bottom: 12px; }
+.mb-3 { margin-bottom: 18px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-2 { gap: 8px; }
+.fw-700 { font-weight: 700; }
+.mono { font-family: var(--font-mono); }
+.text-muted { color: var(--text-muted); }
+
+/* Google Sheets connect modal */
+.gs-modal-card { background: #132336; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; color: #fff; }
+.gs-modal-label { color: rgba(255,255,255,0.6); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: block; font-family: var(--font-mono); }
+.gs-modal-input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; font-family: var(--font-mono); font-size: 0.8rem; outline: none; margin-bottom: 14px; }
+.gs-modal-input:focus { border-color: var(--accent); }
+.gs-modal-input::placeholder { color: rgba(255,255,255,0.25); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .hamburger { display: flex; }
+  .main-content { margin-left: 0; }
+  .page-content { padding: 16px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .form-row-3 { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .project-grid { grid-template-columns: 1fr; }
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .modal { max-width: 100%; }
+  .detail-tab { padding: 8px 12px; font-size: 0.8rem; }
+  .topbar-date { display: none; }
+}
+@media (max-width: 400px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOADING OVERLAY
+     ============================================================ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">
+    <div class="loading-logo-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d1b2a" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8,21 12,17 16,21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    </div>
+    <div class="loading-logo-text">AV/VC Manager</div>
+  </div>
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">Connecting to Google Sheets…</div>
+</div>
+
+<!-- ============================================================
+     SETUP SCREEN (shown if GAS URL not configured)
+     ============================================================ -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="setup-logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d1b2a" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8,21 12,17 16,21"/></svg>
+      </div>
+      <div>
+        <div class="setup-logo-text">AV/VC Project Manager</div>
+        <div class="setup-logo-sub">Google Sheets Backend</div>
+      </div>
+    </div>
+
+    <div class="setup-title">Connect to Google Sheets</div>
+    <div class="setup-desc">This app uses your Google Sheet as a live database. Complete the one-time setup below to get started.</div>
+
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-text">Open your Google Sheet → <strong>Extensions → Apps Script</strong></div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-text">Paste the <strong>Code.gs</strong> file contents, replacing any existing code. Then run <strong>setupSheets()</strong> once.</div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Deploy → New Deployment → Web App</strong>. Set <em>Execute as: Me</em> and <em>Who has access: Anyone</em>.</div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div class="step-text">Copy the <strong>deployment URL</strong> and paste it below.</div>
+      </div>
+    </div>
+
+    <div class="setup-input-group">
+      <span class="setup-input-label">Google Apps Script Deployment URL</span>
+      <input type="text" class="setup-input" id="setupUrlInput"
+             placeholder="https://script.google.com/macros/s/…/exec">
+    </div>
+
+    <div class="setup-error" id="setupError"></div>
+
+    <button class="setup-btn" id="setupConnectBtn" onclick="connectToSheets()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      Connect &amp; Load Data
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     SIDEBAR OVERLAY (mobile)
+     ============================================================ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8,21 12,17 16,21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div>
+          <div class="logo-text">AV/VC Manager</div>
+          <div class="logo-sub">Sheets Backend</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate('projects')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Projects
+      </div>
+
+      <div class="nav-section-label">Modules</div>
+      <div class="nav-item" onclick="navigate('survey')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Site Survey
+      </div>
+      <div class="nav-item" onclick="navigate('diagram')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Block Diagram
+      </div>
+      <div class="nav-item" onclick="navigate('boq')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        BOQ
+      </div>
+
+      <div class="nav-section-label">Execution</div>
+      <div class="nav-item" onclick="navigate('tasks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Tasks
+      </div>
+      <div class="nav-item" onclick="navigate('reports')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Daily Reports
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="sidebar-gs-btn" onclick="openGSSettings()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 0-14.14 0"/><path d="M4.93 19.07a10 10 0 0 0 14.14 0"/><path d="M22 12a10 10 0 0 1-10 10"/><path d="M2 12a10 10 0 0 1 10-10"/></svg>
+        Sheets Settings
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger btn-ghost" onclick="toggleSidebar()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="page-title" id="pageTitle">Dashboard</span>
+      </div>
+      <div class="topbar-right">
+        <div class="sync-status idle" id="syncStatus">
+          <div class="sync-dot"></div>
+          <span id="syncLabel">Synced</span>
+        </div>
+        <div class="topbar-date" id="topbarDate"></div>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- DASHBOARD -->
+      <div class="section active" id="sec-dashboard">
+        <div class="stat-grid" id="dashStatGrid"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Projects Overview
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="navigate('projects')">View All</button>
+            </div>
+            <div id="dashProjectList"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                Recent Activity
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="refreshData()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23,4 23,11 16,11"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 11"/></svg>
+                Refresh
+              </button>
+            </div>
+            <div class="activity-list" id="dashActivity"></div>
+          </div>
+        </div>
+        <div class="grid-2 mt-3">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/></svg>
+                Pending Tasks
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="navigate('tasks')">All Tasks</button>
+            </div>
+            <div class="task-list" id="dashTasks"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                Latest Reports
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="navigate('reports')">All Reports</button>
+            </div>
+            <div id="dashReports"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div class="section" id="sec-projects">
+        <div id="projectListView">
+          <div class="toolbar">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="projectSearch" placeholder="Search projects, clients…" oninput="renderProjectList()">
+            </div>
+            <select class="filter-select" id="projectStatusFilter" onchange="renderProjectList()">
+              <option value="">All Statuses</option>
+              <option value="Survey">Survey</option>
+              <option value="Design">Design</option>
+              <option value="BOQ">BOQ</option>
+              <option value="Execution">Execution</option>
+              <option value="Completed">Completed</option>
+            </select>
+            <button class="btn btn-primary" onclick="openProjectForm();openModal('projectModal')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Project
+            </button>
+          </div>
+          <div class="project-grid" id="projectGrid"></div>
+        </div>
+
+        <div id="projectDetailView" style="display:none;">
+          <div class="detail-header">
+            <button class="back-btn" onclick="showProjectList()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg>
+              Back to Projects
+            </button>
+            <div style="flex:1">
+              <h2 class="section-heading" id="detailProjectName"></h2>
+              <div class="section-sub" id="detailProjectClient"></div>
+            </div>
+            <div id="detailProjectStatus"></div>
+          </div>
+
+          <div class="detail-tabs">
+            <button class="detail-tab active" onclick="switchTab(this,'tab-overview')">Overview</button>
+            <button class="detail-tab" onclick="switchTab(this,'tab-survey')">Site Survey</button>
+            <button class="detail-tab" onclick="switchTab(this,'tab-diagram')">Block Diagram</button>
+            <button class="detail-tab" onclick="switchTab(this,'tab-boq')">BOQ</button>
+            <button class="detail-tab" onclick="switchTab(this,'tab-tasks')">Tasks</button>
+            <button class="detail-tab" onclick="switchTab(this,'tab-reports')">Reports</button>
+          </div>
+
+          <div class="detail-tab-content active" id="tab-overview">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-title mb-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Project Details
+                </div>
+                <div id="detailOverviewInfo"></div>
+                <div class="mt-2">
+                  <button class="btn btn-secondary btn-sm" onclick="editCurrentProject()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit Project
+                  </button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-title mb-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/></svg>
+                  Task Progress
+                </div>
+                <div id="detailTaskProgress"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-tab-content" id="tab-survey">
+            <div class="card-header" style="margin-bottom:16px">
+              <h3 style="font-size:.95rem;font-weight:700">Site Survey Data</h3>
+              <button class="btn btn-primary btn-sm" onclick="openSurveyModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Survey
+              </button>
+            </div>
+            <div id="surveyContent"></div>
+          </div>
+
+          <div class="detail-tab-content" id="tab-diagram">
+            <div class="card-header" style="margin-bottom:16px">
+              <h3 style="font-size:.95rem;font-weight:700">Block Diagram</h3>
+              <button class="btn btn-primary btn-sm" onclick="openDiagramModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Update Diagram
+              </button>
+            </div>
+            <div id="diagramContent"></div>
+          </div>
+
+          <div class="detail-tab-content" id="tab-boq">
+            <div class="card-header" style="margin-bottom:16px">
+              <h3 style="font-size:.95rem;font-weight:700">Bill of Quantities</h3>
+              <div class="flex gap-2">
+                <button class="btn btn-secondary btn-sm" onclick="exportBOQCSV()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export CSV
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="addBOQRow()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add Item
+                </button>
+              </div>
+            </div>
+            <div id="boqContent"></div>
+          </div>
+
+          <div class="detail-tab-content" id="tab-tasks">
+            <div class="card-header" style="margin-bottom:16px">
+              <h3 style="font-size:.95rem;font-weight:700">Task Tracker</h3>
+              <button class="btn btn-primary btn-sm" onclick="openTaskModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Task
+              </button>
+            </div>
+            <div id="tasksContent"></div>
+          </div>
+
+          <div class="detail-tab-content" id="tab-reports">
+            <div class="card-header" style="margin-bottom:16px">
+              <h3 style="font-size:.95rem;font-weight:700">Daily Reports</h3>
+              <button class="btn btn-primary btn-sm" onclick="openReportModal()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Report
+              </button>
+            </div>
+            <div id="reportsContent"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SITE SURVEY (global) -->
+      <div class="section" id="sec-survey">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="surveySearch" placeholder="Search surveys…" oninput="renderGlobalSurveys()">
+          </div>
+          <button class="btn btn-primary" onclick="openSurveyModal(null,true)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Survey
+          </button>
+        </div>
+        <div id="globalSurveyList"></div>
+      </div>
+
+      <!-- DIAGRAM (global) -->
+      <div class="section" id="sec-diagram">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="diagramSearch" placeholder="Search diagrams…" oninput="renderGlobalDiagrams()">
+          </div>
+        </div>
+        <div id="globalDiagramList"></div>
+      </div>
+
+      <!-- BOQ (global) -->
+      <div class="section" id="sec-boq">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="boqSearch" placeholder="Search BOQs…" oninput="renderGlobalBOQ()">
+          </div>
+        </div>
+        <div id="globalBOQList"></div>
+      </div>
+
+      <!-- TASKS (global) -->
+      <div class="section" id="sec-tasks">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="taskSearch" placeholder="Search tasks…" oninput="renderGlobalTasks()">
+          </div>
+          <select class="filter-select" id="taskStatusFilter" onchange="renderGlobalTasks()">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+          <button class="btn btn-primary" onclick="openTaskModal(null,true)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Task
+          </button>
+        </div>
+        <div id="globalTaskList"></div>
+      </div>
+
+      <!-- REPORTS (global) -->
+      <div class="section" id="sec-reports">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="reportSearch" placeholder="Search reports…" oninput="renderGlobalReports()">
+          </div>
+          <button class="btn btn-primary" onclick="openReportModal(null,true)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Report
+          </button>
+        </div>
+        <div id="globalReportList"></div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================================
+     MODAL: PROJECT
+     ============================================================ -->
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="projectModalTitle">New Project</span>
+      <button class="modal-close" onclick="closeModal('projectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="projectId">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Project Name <span class="required">*</span></label>
+          <input type="text" id="pName" placeholder="e.g. Conference Room AV Setup">
+        </div>
+        <div class="form-group">
+          <label>Client Name <span class="required">*</span></label>
+          <input type="text" id="pClient" placeholder="e.g. ABC Corp">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Site Location <span class="required">*</span></label>
+          <input type="text" id="pLocation" placeholder="e.g. Mumbai, Floor 3">
+        </div>
+        <div class="form-group">
+          <label>Status <span class="required">*</span></label>
+          <select id="pStatus">
+            <option value="Survey">Survey</option>
+            <option value="Design">Design</option>
+            <option value="BOQ">BOQ</option>
+            <option value="Execution">Execution</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Assign Team Members</label>
+        <div class="member-checkboxes" id="memberCheckboxes"></div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="pNotes" placeholder="Additional project notes…" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('projectModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: SURVEY
+     ============================================================ -->
+<div class="modal-overlay" id="surveyModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Site Survey</span>
+      <button class="modal-close" onclick="closeModal('surveyModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="surveyId">
+      <div class="form-group">
+        <label>Project <span class="required">*</span></label>
+        <select id="surveyProjectId"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Room / Area Name <span class="required">*</span></label>
+          <input type="text" id="surveyRoom" placeholder="e.g. Boardroom A">
+        </div>
+        <div class="form-group">
+          <label>Room Dimensions (L × W × H)</label>
+          <input type="text" id="surveyDimensions" placeholder="e.g. 10m × 8m × 3m">
+        </div>
+      </div>
+      <div class="form-row form-row-3">
+        <div class="form-group">
+          <label>Power Points</label>
+          <input type="number" id="surveyPower" placeholder="e.g. 6" min="0">
+        </div>
+        <div class="form-group">
+          <label>Network Points</label>
+          <input type="number" id="surveyNetwork" placeholder="e.g. 4" min="0">
+        </div>
+        <div class="form-group">
+          <label>HDMI / AV Points</label>
+          <input type="number" id="surveyAV" placeholder="e.g. 2" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Mounting Details</label>
+        <textarea id="surveyMounting" placeholder="Wall mount, ceiling mount, floor stand…" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Survey Notes</label>
+        <textarea id="surveyNotes" placeholder="Observations, constraints, special requirements…" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Site Images <span style="font-size:.75rem;font-weight:400;text-transform:none;color:var(--text-muted)">(stored locally in browser)</span></label>
+        <div class="upload-area" onclick="document.getElementById('surveyImgInput').click()">
+          <input type="file" id="surveyImgInput" accept="image/*" multiple onchange="handleSurveyImages(event)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+          <div>Click to upload site photos</div>
+        </div>
+        <div class="img-gallery" id="surveyImgPreview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('surveyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSurvey()">Save Survey</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: DIAGRAM
+     ============================================================ -->
+<div class="modal-overlay" id="diagramModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Block Diagram</span>
+      <button class="modal-close" onclick="closeModal('diagramModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="diagramId">
+      <div class="form-group">
+        <label>Project <span class="required">*</span></label>
+        <select id="diagramProjectId"></select>
+      </div>
+      <div class="form-group">
+        <label>Upload Diagram (PNG / JPG)</label>
+        <div class="upload-area" onclick="document.getElementById('diagramFileInput').click()">
+          <input type="file" id="diagramFileInput" accept="image/*,.pdf" onchange="handleDiagramFile(event)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <div>Click to upload block diagram</div>
+        </div>
+        <div id="diagramFilePreview"></div>
+      </div>
+      <div class="form-group">
+        <label>Design Notes</label>
+        <textarea id="diagramNotes" placeholder="Signal flow, integration points, design rationale…" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tag Components</label>
+        <div class="flex gap-2">
+          <input type="text" id="componentTagInput" placeholder="e.g. Display, DSP, Camera…" style="flex:1" onkeydown="if(event.key==='Enter'){addComponentTag();event.preventDefault();}">
+          <button class="btn btn-secondary" onclick="addComponentTag()">Add Tag</button>
+        </div>
+        <div class="component-tags" id="componentTagsList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('diagramModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDiagram()">Save Diagram</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: TASK
+     ============================================================ -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="taskModalTitle">Add Task</span>
+      <button class="modal-close" onclick="closeModal('taskModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="taskId">
+      <div class="form-group">
+        <label>Project <span class="required">*</span></label>
+        <select id="taskProjectId"></select>
+      </div>
+      <div class="form-group">
+        <label>Task Name <span class="required">*</span></label>
+        <input type="text" id="taskName" placeholder="e.g. Install display mounts">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Assigned To <span class="required">*</span></label>
+          <select id="taskAssignee"></select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="taskStatus">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="taskNotes" placeholder="Additional details…" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('taskModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: REPORT
+     ============================================================ -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Daily Site Report</span>
+      <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="reportId">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Project <span class="required">*</span></label>
+          <select id="reportProjectId"></select>
+        </div>
+        <div class="form-group">
+          <label>Date <span class="required">*</span></label>
+          <input type="date" id="reportDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Work Done Today <span class="required">*</span></label>
+        <textarea id="reportWorkDone" placeholder="Describe work completed today…" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Issues / Challenges</label>
+        <textarea id="reportIssues" placeholder="Any problems encountered…" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Next Day Plan</label>
+        <textarea id="reportNextPlan" placeholder="Work planned for tomorrow…" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Reported By</label>
+        <select id="reportedBy"></select>
+      </div>
+      <div class="form-group">
+        <label>Site Photos <span style="font-size:.75rem;font-weight:400;text-transform:none;color:var(--text-muted)">(stored locally in browser)</span></label>
+        <div class="upload-area" onclick="document.getElementById('reportImgInput').click()">
+          <input type="file" id="reportImgInput" accept="image/*" multiple onchange="handleReportImages(event)">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+          <div>Upload photos</div>
+        </div>
+        <div class="img-gallery" id="reportImgPreview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('reportModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReport()">Save Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GS SETTINGS -->
+<div class="modal-overlay" id="gsSettingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Google Sheets Settings</span>
+      <button class="modal-close" onclick="closeModal('gsSettingsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="gs-modal-card">
+        <span class="gs-modal-label">Apps Script Deployment URL</span>
+        <input type="text" class="gs-modal-input" id="gsUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
+        <div style="color:rgba(255,255,255,0.5);font-size:0.78rem;line-height:1.6">
+          Update your deployment URL here. Changes take effect immediately after saving.<br><br>
+          <strong style="color:rgba(255,255,255,0.7)">Note:</strong> Images are saved locally in your browser and are not synced to Google Sheets.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('gsSettingsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveGSSettings()">Save & Reconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="modal-overlay" id="lightboxModal" onclick="closeModal('lightboxModal')">
+  <div style="max-width:90vw;max-height:90vh;display:flex;align-items:center;justify-content:center;">
+    <img id="lightboxImg" style="max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:var(--shadow-lg);" src="">
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+'use strict';
+
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
+const TEAM_MEMBERS = ['Rahul Sharma', 'Priya Mehta', 'Arjun Patel', 'Sneha Iyer'];
+const STATUS_COLORS = { 'Survey':'badge-survey','Design':'badge-design','BOQ':'badge-boq','Execution':'badge-execution','Completed':'badge-completed' };
+const TASK_COLORS   = { 'Pending':'badge-pending','In Progress':'badge-inprogress','Done':'badge-done' };
+
+// Apps Script URL (loaded from localStorage)
+let GAS_URL = localStorage.getItem('avvc_gas_url') || '';
+
+/* ============================================================
+   IN-MEMORY CACHE
+   All reads come from here. Writes go here + async to Sheets.
+   Images stored separately in localStorage (base64).
+   ============================================================ */
+const CACHE = { projects:[], surveys:[], diagrams:[], boq:[], tasks:[], reports:[] };
+
+/* ============================================================
+   SYNC ENGINE
+   Queue-based async write-through to Google Sheets
+   ============================================================ */
+let syncQueue = [];
+let isSyncing = false;
+
+function queueSync(action, sheet, data) {
+  syncQueue.push({ action, sheet, data });
+  if (!isSyncing) processSyncQueue();
+}
+
+async function processSyncQueue() {
+  isSyncing = true;
+  setSyncStatus('syncing');
+
+  while (syncQueue.length > 0) {
+    const item = syncQueue.shift();
+    try {
+      if (item.action === 'save') {
+        await sheetsWrite({ action:'save', sheet:item.sheet, row:item.data });
+      } else if (item.action === 'delete') {
+        await sheetsWrite({ action:'delete', sheet:item.sheet, id:item.data });
+      }
+    } catch(e) {
+      console.error('Sync error:', e);
+      setSyncStatus('error');
+      toast('Sync failed — check connection','error');
+      isSyncing = false;
+      return;
+    }
+  }
+
+  isSyncing = false;
+  setSyncStatus('idle');
+}
+
+/* ============================================================
+   SHEETS API CALLS
+   ============================================================ */
+async function sheetsRead(sheetKey) {
+  const res = await fetch(`${GAS_URL}?action=getAll&sheet=${sheetKey}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Unknown error');
+  return json.data || [];
+}
+
+async function sheetsWrite(payload) {
+  // Use no-cors for writes — fire & forget (Apps Script receives it fine)
+  await fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  });
+}
+
+/* ============================================================
+   CACHE-BACKED DB (same API as before, now async-safe writes)
+   ============================================================ */
+const DB = {
+  get:    (key)     => CACHE[key] || [],
+  getOne: (key, id) => (CACHE[key]||[]).find(i => i.id === id),
+  save:   (key, item) => {
+    const arr = CACHE[key] || [];
+    const idx = arr.findIndex(i => i.id === item.id);
+    if (idx >= 0) arr[idx] = item; else arr.push(item);
+    CACHE[key] = arr;
+    queueSync('save', key, item);
+  },
+  delete: (key, id) => {
+    CACHE[key] = (CACHE[key]||[]).filter(i => i.id !== id);
+    queueSync('delete', key, id);
+  }
+};
+
+/* ============================================================
+   LOAD ALL DATA FROM SHEETS ON STARTUP
+   ============================================================ */
+async function loadAllData() {
+  const keys = ['projects','surveys','diagrams','boq','tasks','reports'];
+  setLoadingMsg('Fetching data from Google Sheets…');
+
+  const results = await Promise.allSettled(keys.map(k => sheetsRead(k)));
+
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      CACHE[keys[i]] = r.value;
+    } else {
+      console.warn(`Failed to load ${keys[i]}:`, r.reason);
+      CACHE[keys[i]] = [];
+    }
+  });
+}
+
+async function refreshData() {
+  setSyncStatus('syncing');
+  try {
+    await loadAllData();
+    renderDashboard();
+    toast('Data refreshed from Google Sheets!');
+  } catch(e) {
+    toast('Refresh failed — check connection','error');
+  }
+  setSyncStatus('idle');
+}
+
+/* ============================================================
+   SETUP & CONNECT
+   ============================================================ */
+function showSetupScreen() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('setupScreen').classList.add('open');
+}
+
+async function connectToSheets() {
+  const url = document.getElementById('setupUrlInput').value.trim();
+  const errEl = document.getElementById('setupError');
+  errEl.classList.remove('show');
+
+  if (!url || !url.includes('script.google.com')) {
+    errEl.textContent = 'Please enter a valid Google Apps Script URL.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('setupConnectBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px"></div> Connecting…';
+
+  try {
+    // Test connection with a small fetch
+    const res = await fetch(`${url}?action=getAll&sheet=projects`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.success && json.error && !json.error.includes('Unknown')) {
+      throw new Error(json.error);
+    }
+
+    // Save URL and proceed
+    GAS_URL = url;
+    localStorage.setItem('avvc_gas_url', GAS_URL);
+    document.getElementById('setupScreen').classList.remove('open');
+    await init();
+
+  } catch(e) {
+    console.error(e);
+    errEl.textContent = `Connection failed: ${e.message}. Make sure the script is deployed and access is set to "Anyone".`;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg> Connect &amp; Load Data';
+  }
+}
+
+function openGSSettings() {
+  document.getElementById('gsUrlInput').value = GAS_URL;
+  openModal('gsSettingsModal');
+}
+
+async function saveGSSettings() {
+  const url = document.getElementById('gsUrlInput').value.trim();
+  if (!url) return;
+  GAS_URL = url;
+  localStorage.setItem('avvc_gas_url', GAS_URL);
+  closeModal('gsSettingsModal');
+  toast('Settings saved! Re-fetching data…');
+  await refreshData();
+}
+
+/* ============================================================
+   SYNC STATUS UI
+   ============================================================ */
+function setSyncStatus(state) {
+  const el    = document.getElementById('syncStatus');
+  const label = document.getElementById('syncLabel');
+  const dot   = el.querySelector('.sync-dot');
+
+  el.className = 'sync-status ' + state;
+  dot.className = 'sync-dot' + (state==='syncing'?' pulse':'');
+
+  if      (state === 'idle')    label.textContent = 'Synced';
+  else if (state === 'syncing') label.textContent = 'Syncing…';
+  else if (state === 'error')   label.textContent = 'Sync Error';
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+const uid      = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const today    = () => new Date().toISOString().split('T')[0];
+const fmtDate  = d  => { if(!d) return '—'; const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); };
+const fmtCurr  = n  => '₹' + Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtTime  = ts => { const d=new Date(ts); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); };
+const esc      = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const getProj  = id => DB.getOne('projects', id);
+
+function badge(status, type='project') {
+  const cls = type==='project' ? STATUS_COLORS[status] : TASK_COLORS[status];
+  return `<span class="badge ${cls||''}">${esc(status)}</span>`;
+}
+
+function toast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> ${esc(msg)}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function setLoadingMsg(msg) {
+  const el = document.getElementById('loadingMsg');
+  if (el) el.textContent = msg;
+}
+
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  el.classList.add('fade-out');
+  setTimeout(() => el.style.display='none', 400);
+}
+
+// Image helpers (localStorage, not Sheets)
+function imgKey(ctx, id)  { return `avvc_img_${ctx}_${id}`; }
+function saveImgs(ctx, id, imgs) { try { localStorage.setItem(imgKey(ctx,id), JSON.stringify(imgs)); } catch(e){} }
+function loadImgs(ctx, id)       { try { return JSON.parse(localStorage.getItem(imgKey(ctx,id))||'[]'); } catch(e){ return []; } }
+function deleteImgs(ctx, id)     { try { localStorage.removeItem(imgKey(ctx,id)); } catch(e){} }
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const PAGE_TITLES = { dashboard:'Dashboard', projects:'Projects', survey:'Site Survey', diagram:'Block Diagram', boq:'Bill of Quantities', tasks:'Tasks', reports:'Daily Reports' };
+
+function navigate(section) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const sec = document.getElementById('sec-'+section);
+  if (sec) sec.classList.add('active');
+
+  // Match nav item by first word of page title
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().startsWith(PAGE_TITLES[section]?.split(' ')[0].toLowerCase())) {
+      n.classList.add('active');
+    }
+  });
+
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[section] || section;
+  closeSidebar();
+
+  if (section==='dashboard') renderDashboard();
+  if (section==='projects')  renderProjectList();
+  if (section==='survey')    renderGlobalSurveys();
+  if (section==='diagram')   renderGlobalDiagrams();
+  if (section==='boq')       renderGlobalBOQ();
+  if (section==='tasks')     renderGlobalTasks();
+  if (section==='reports')   renderGlobalReports();
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); }
+function closeSidebar()  { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function renderDashboard() {
+  const projects  = DB.get('projects');
+  const tasks     = DB.get('tasks');
+  const reports   = DB.get('reports');
+  const ongoing   = projects.filter(p => p.status !== 'Completed');
+  const completed = projects.filter(p => p.status === 'Completed');
+  const pending   = tasks.filter(t => t.status !== 'Done');
+
+  const stats = [
+    { label:'Total Projects', value:projects.length, bg:'#dbeafe', fg:'#2563eb',
+      icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>` },
+    { label:'Ongoing', value:ongoing.length, bg:'#fef3c7', fg:'#d97706',
+      icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>` },
+    { label:'Completed', value:completed.length, bg:'#d1fae5', fg:'#059669',
+      icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>` },
+    { label:'Pending Tasks', value:pending.length, bg:'#ede9fe', fg:'#7c3aed',
+      icon:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>` }
+  ];
+
+  document.getElementById('dashStatGrid').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:${s.bg};color:${s.fg}">${s.icon}</div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:${s.fg}">${s.value}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>
+    </div>`).join('');
+
+  const recent = [...projects].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+  document.getElementById('dashProjectList').innerHTML = recent.length
+    ? recent.map(p=>`<div class="activity-item" style="cursor:pointer" onclick="openProjectDetail('${p.id}')">
+        <div class="activity-dot" style="background:${statusDot(p.status)}"></div>
+        <div class="activity-text"><strong>${esc(p.name)}</strong><br><span style="font-size:.75rem;color:var(--text-muted)">${esc(p.client)} · ${esc(p.location)}</span></div>
+        ${badge(p.status)}</div>`).join('')
+    : '<div class="empty-state"><p>No projects yet.</p></div>';
+
+  // Activity from recent writes
+  const recentActivity = buildActivity();
+  document.getElementById('dashActivity').innerHTML = recentActivity.length
+    ? recentActivity.map(a=>`<div class="activity-item">
+        <div class="activity-dot" style="background:${a.color}"></div>
+        <div class="activity-text">${esc(a.msg)}</div>
+        <div class="activity-time">${fmtTime(a.ts)}</div></div>`).join('')
+    : '<div class="empty-state"><p>No recent activity.</p></div>';
+
+  document.getElementById('dashTasks').innerHTML = pending.slice(0,5).length
+    ? `<div class="task-list">${pending.slice(0,5).map(t=>{const p=getProj(t.projectId); return `<div class="task-item">
+        <div style="flex:1"><div style="font-size:.85rem;font-weight:600">${esc(t.name)}</div>
+        <div style="font-size:.75rem;color:var(--text-muted)">${p?esc(p.name):''} · ${esc(t.assignedTo)}</div></div>
+        ${badge(t.status,'task')}</div>`;}).join('')}</div>`
+    : '<div class="empty-state"><p>No pending tasks 🎉</p></div>';
+
+  const latestReps = [...reports].sort((a,b)=>b.createdAt-a.createdAt).slice(0,3);
+  document.getElementById('dashReports').innerHTML = latestReps.length
+    ? latestReps.map(r=>{const p=getProj(r.projectId); return `<div class="activity-item">
+        <div class="activity-dot" style="background:var(--accent)"></div>
+        <div class="activity-text"><strong>${fmtDate(r.date)}</strong> — ${p?esc(p.name):''}
+        <br><span style="font-size:.75rem;color:var(--text-muted)">${esc((r.workDone||'').slice(0,60))}${(r.workDone||'').length>60?'…':''}</span></div>
+      </div>`;}).join('')
+    : '<div class="empty-state"><p>No reports yet.</p></div>';
+}
+
+function statusDot(s) {
+  return {Survey:'#0ea5e9',Design:'#8b5cf6',BOQ:'#eab308',Execution:'#f59e0b',Completed:'#10b981'}[s]||'#94a3b8';
+}
+
+function buildActivity() {
+  // Build recent activity from all cached data timestamps
+  const items = [];
+  DB.get('projects').forEach(p => items.push({ msg:`Project "${p.name}" (${p.status})`, color:'#2563eb', ts:p.updatedAt||p.createdAt }));
+  DB.get('tasks').forEach(t    => items.push({ msg:`Task: "${t.name}" → ${t.status}`, color:'#7c3aed', ts:t.updatedAt||t.createdAt }));
+  DB.get('reports').forEach(r  => items.push({ msg:`Daily report filed — ${fmtDate(r.date)}`, color:'#f59e0b', ts:r.createdAt }));
+  DB.get('surveys').forEach(s  => items.push({ msg:`Survey: "${s.room}"`, color:'#10b981', ts:s.createdAt }));
+  return items.sort((a,b)=>b.ts-a.ts).slice(0,10);
+}
+
+/* ============================================================
+   PROJECT LIST
+   ============================================================ */
+function renderProjectList() {
+  const search  = (document.getElementById('projectSearch')?.value||'').toLowerCase();
+  const statusF = document.getElementById('projectStatusFilter')?.value||'';
+  let projects  = DB.get('projects');
+  if (search)  projects = projects.filter(p => p.name.toLowerCase().includes(search)||p.client.toLowerCase().includes(search)||p.location.toLowerCase().includes(search));
+  if (statusF) projects = projects.filter(p => p.status===statusF);
+
+  document.getElementById('projectGrid').innerHTML = projects.length
+    ? projects.sort((a,b)=>b.createdAt-a.createdAt).map(p=>projectCard(p)).join('')
+    : `<div class="empty-state" style="grid-column:1/-1">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <h3>No projects found</h3><p>Create your first project to get started.</p></div>`;
+}
+
+function projectCard(p) {
+  const tasks = DB.get('tasks').filter(t=>t.projectId===p.id);
+  const done  = tasks.filter(t=>t.status==='Done').length;
+  const pct   = tasks.length ? Math.round(done/tasks.length*100) : 0;
+  const mems  = Array.isArray(p.members) ? p.members : [];
+  return `
+    <div class="project-card" onclick="openProjectDetail('${p.id}')">
+      <div class="project-card-header">
+        <div>
+          <div class="project-name">${esc(p.name)}</div>
+          <div class="project-client">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            ${esc(p.client)}
+          </div>
+        </div>
+        ${badge(p.status)}
+      </div>
+      <div class="project-meta">
+        <div class="project-meta-item">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${esc(p.location)}
+        </div>
+        <div class="project-meta-item">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,11 12,14 22,4"/></svg>
+          ${done}/${tasks.length} tasks
+        </div>
+      </div>
+      ${tasks.length ? `<div style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);margin-bottom:3px"><span>Progress</span><span class="mono">${pct}%</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>` : ''}
+      ${mems.length ? `<div class="avatar-chips mt-2">${mems.map(m=>`<div class="avatar-chip">${esc(m.split(' ')[0])}</div>`).join('')}</div>` : ''}
+      <div class="project-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-sm btn-secondary" onclick="editProject('${p.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}')">Delete</button>
+      </div>
+    </div>`;
+}
+
+/* ============================================================
+   PROJECT DETAIL
+   ============================================================ */
+let currentProjectId    = null;
+let editingBOQProjectId = null;
+
+function openProjectDetail(id) {
+  currentProjectId = id;
+  editingBOQProjectId = id;
+  navigate('projects');
+  document.getElementById('projectListView').style.display='none';
+  document.getElementById('projectDetailView').style.display='block';
+  document.getElementById('pageTitle').textContent = 'Project Detail';
+
+  const p = getProj(id);
+  if (!p) return;
+
+  document.getElementById('detailProjectName').textContent  = p.name;
+  document.getElementById('detailProjectClient').textContent = `${p.client} · ${p.location}`;
+  document.getElementById('detailProjectStatus').innerHTML  = badge(p.status);
+
+  document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.detail-tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.detail-tab').classList.add('active');
+  document.getElementById('tab-overview').classList.add('active');
+
+  renderProjectOverview(p);
+  renderProjectSurvey(id);
+  renderProjectDiagram(id);
+  renderProjectBOQ(id);
+  renderProjectTasks(id);
+  renderProjectReports(id);
+}
+
+function showProjectList() {
+  currentProjectId = null;
+  document.getElementById('projectListView').style.display='block';
+  document.getElementById('projectDetailView').style.display='none';
+  document.getElementById('pageTitle').textContent = 'Projects';
+  renderProjectList();
+}
+
+function switchTab(el, tabId) {
+  document.querySelectorAll('.detail-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.detail-tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+function renderProjectOverview(p) {
+  const members = Array.isArray(p.members) ? p.members.join(', ') : (p.members||'—');
+  document.getElementById('detailOverviewInfo').innerHTML = `
+    <div class="info-row"><span class="info-label">Project</span><span class="info-value fw-700">${esc(p.name)}</span></div>
+    <div class="info-row"><span class="info-label">Client</span><span class="info-value">${esc(p.client)}</span></div>
+    <div class="info-row"><span class="info-label">Location</span><span class="info-value">${esc(p.location)}</span></div>
+    <div class="info-row"><span class="info-label">Status</span><span class="info-value">${badge(p.status)}</span></div>
+    <div class="info-row"><span class="info-label">Team</span><span class="info-value">${esc(members)}</span></div>
+    ${p.notes?`<div class="info-row"><span class="info-label">Notes</span><span class="info-value">${esc(p.notes)}</span></div>`:''}
+  `;
+  const tasks  = DB.get('tasks').filter(t=>t.projectId===p.id);
+  const done   = tasks.filter(t=>t.status==='Done').length;
+  const inProg = tasks.filter(t=>t.status==='In Progress').length;
+  const pend   = tasks.filter(t=>t.status==='Pending').length;
+  const pct    = tasks.length ? Math.round(done/tasks.length*100) : 0;
+  document.getElementById('detailTaskProgress').innerHTML = `
+    <div style="font-size:2rem;font-weight:700;font-family:var(--font-mono);color:var(--accent)">${pct}%</div>
+    <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px">Completion</div>
+    <div class="progress-bar" style="height:10px;margin-bottom:16px"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="stat-card card-sm" style="flex:1"><div class="stat-value" style="font-size:1.4rem;color:var(--danger)">${pend}</div><div class="stat-label">Pending</div></div>
+      <div class="stat-card card-sm" style="flex:1"><div class="stat-value" style="font-size:1.4rem;color:var(--accent-dark)">${inProg}</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card card-sm" style="flex:1"><div class="stat-value" style="font-size:1.4rem;color:var(--success)">${done}</div><div class="stat-label">Done</div></div>
+    </div>`;
+}
+
+/* ============================================================
+   PROJECT CRUD
+   ============================================================ */
+function openProjectForm() {
+  document.getElementById('projectId').value = '';
+  document.getElementById('pName').value     = '';
+  document.getElementById('pClient').value   = '';
+  document.getElementById('pLocation').value = '';
+  document.getElementById('pStatus').value   = 'Survey';
+  document.getElementById('pNotes').value    = '';
+  document.getElementById('projectModalTitle').textContent = 'New Project';
+  populateMemberCheckboxes([]);
+}
+
+function editProject(id) {
+  const p = getProj(id);
+  if (!p) return;
+  document.getElementById('projectId').value   = id;
+  document.getElementById('pName').value       = p.name;
+  document.getElementById('pClient').value     = p.client;
+  document.getElementById('pLocation').value   = p.location;
+  document.getElementById('pStatus').value     = p.status;
+  document.getElementById('pNotes').value      = p.notes||'';
+  document.getElementById('projectModalTitle').textContent = 'Edit Project';
+  populateMemberCheckboxes(Array.isArray(p.members)?p.members:[]);
+  openModal('projectModal');
+}
+
+function editCurrentProject() { if (currentProjectId) editProject(currentProjectId); }
+
+function populateMemberCheckboxes(selected) {
+  document.getElementById('memberCheckboxes').innerHTML = TEAM_MEMBERS.map(m =>
+    `<label class="member-cb ${selected.includes(m)?'checked':''}" onclick="this.classList.toggle('checked')">
+      <input type="checkbox" ${selected.includes(m)?'checked':''}> ${esc(m)}
+    </label>`).join('');
+}
+
+function getSelectedMembers() {
+  return [...document.querySelectorAll('.member-cb.checked')].map(el=>el.textContent.trim().replace(/\s+/g,' '));
+}
+
+function saveProject() {
+  const name     = document.getElementById('pName').value.trim();
+  const client   = document.getElementById('pClient').value.trim();
+  const location = document.getElementById('pLocation').value.trim();
+  const status   = document.getElementById('pStatus').value;
+  if (!name||!client||!location) { toast('Please fill all required fields.','error'); return; }
+
+  const id       = document.getElementById('projectId').value || uid();
+  const existing = getProj(id);
+  const project  = { id, name, client, location, status, members:getSelectedMembers(),
+                     notes:document.getElementById('pNotes').value.trim(),
+                     createdAt:existing?existing.createdAt:Date.now(), updatedAt:Date.now() };
+  DB.save('projects', project);
+  closeModal('projectModal');
+  toast(existing?'Project updated!':'Project created!');
+  renderProjectList();
+  renderDashboard();
+}
+
+function deleteProject(id) {
+  const p = getProj(id);
+  if (!p) return;
+  if (!confirm(`Delete project "${p.name}"? This removes all linked data.`)) return;
+
+  DB.delete('projects', id);
+  // Cascade delete linked data
+  DB.get('surveys').filter(s=>s.projectId===id).forEach(s=>{ DB.delete('surveys',s.id); deleteImgs('survey',s.id); });
+  DB.get('diagrams').filter(d=>d.projectId===id).forEach(d=>{ DB.delete('diagrams',d.id); deleteImgs('diagram',d.id); });
+  DB.get('boq').filter(b=>b.projectId===id).forEach(b=>DB.delete('boq',b.id));
+  DB.get('tasks').filter(t=>t.projectId===id).forEach(t=>DB.delete('tasks',t.id));
+  DB.get('reports').filter(r=>r.projectId===id).forEach(r=>{ DB.delete('reports',r.id); deleteImgs('report',r.id); });
+
+  toast('Project deleted.','error');
+  renderProjectList();
+  renderDashboard();
+}
+
+/* ============================================================
+   SITE SURVEY
+   ============================================================ */
+let tempSurveyImages = [];
+
+function openSurveyModal(projId, global) {
+  tempSurveyImages = [];
+  document.getElementById('surveyId').value        = '';
+  document.getElementById('surveyRoom').value      = '';
+  document.getElementById('surveyDimensions').value= '';
+  document.getElementById('surveyPower').value     = '';
+  document.getElementById('surveyNetwork').value   = '';
+  document.getElementById('surveyAV').value        = '';
+  document.getElementById('surveyMounting').value  = '';
+  document.getElementById('surveyNotes').value     = '';
+  document.getElementById('surveyImgPreview').innerHTML = '';
+  populateProjectSelect('surveyProjectId', projId||currentProjectId);
+  openModal('surveyModal');
+}
+
+function handleSurveyImages(e) {
+  Array.from(e.target.files).forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => { tempSurveyImages.push(ev.target.result); renderImgPreviews('surveyImgPreview', tempSurveyImages); };
+    r.readAsDataURL(f);
+  });
+}
+
+function renderImgPreviews(containerId, images) {
+  document.getElementById(containerId).innerHTML = images.map(src =>
+    `<img class="img-thumb" src="${src}" onclick="showLightbox('${src}')">`).join('');
+}
+
+function showLightbox(src) { document.getElementById('lightboxImg').src=src; openModal('lightboxModal'); }
+
+function saveSurvey() {
+  const projId = document.getElementById('surveyProjectId').value;
+  const room   = document.getElementById('surveyRoom').value.trim();
+  if (!projId||!room) { toast('Please select a project and enter room name.','error'); return; }
+
+  const id     = document.getElementById('surveyId').value || uid();
+  const survey = { id, projectId:projId, room,
+                   dimensions: document.getElementById('surveyDimensions').value.trim(),
+                   power:      document.getElementById('surveyPower').value,
+                   network:    document.getElementById('surveyNetwork').value,
+                   avPoints:   document.getElementById('surveyAV').value,
+                   mounting:   document.getElementById('surveyMounting').value.trim(),
+                   notes:      document.getElementById('surveyNotes').value.trim(),
+                   createdAt:  Date.now() };
+  DB.save('surveys', survey);
+  if (tempSurveyImages.length) saveImgs('survey', id, tempSurveyImages);
+  closeModal('surveyModal');
+  toast('Survey saved to Google Sheets!');
+  if (currentProjectId) renderProjectSurvey(currentProjectId);
+  renderGlobalSurveys();
+}
+
+function renderProjectSurvey(projId) {
+  const surveys = DB.get('surveys').filter(s=>s.projectId===projId);
+  document.getElementById('surveyContent').innerHTML = surveys.length
+    ? surveys.map(s=>surveyCard(s)).join('')
+    : `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/></svg><h3>No surveys yet</h3></div>`;
+}
+
+function surveyCard(s) {
+  const imgs = loadImgs('survey', s.id);
+  return `<div class="card mb-2">
+    <div class="card-header">
+      <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${esc(s.room)}</div>
+      <button class="btn btn-sm btn-danger" onclick="deleteSurvey('${s.id}')">Delete</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        ${s.dimensions?`<div class="info-row"><span class="info-label">Dimensions</span><span class="info-value mono">${esc(s.dimensions)}</span></div>`:''}
+        ${s.power?`<div class="info-row"><span class="info-label">Power Points</span><span class="info-value mono">${esc(s.power)}</span></div>`:''}
+        ${s.network?`<div class="info-row"><span class="info-label">Network Pts</span><span class="info-value mono">${esc(s.network)}</span></div>`:''}
+        ${s.avPoints?`<div class="info-row"><span class="info-label">AV/HDMI Pts</span><span class="info-value mono">${esc(s.avPoints)}</span></div>`:''}
+      </div>
+      <div>
+        ${s.mounting?`<div class="info-row"><span class="info-label">Mounting</span><span class="info-value">${esc(s.mounting)}</span></div>`:''}
+        ${s.notes?`<div class="info-row"><span class="info-label">Notes</span><span class="info-value">${esc(s.notes)}</span></div>`:''}
+      </div>
+    </div>
+    ${imgs.length?`<div class="img-gallery mt-2">${imgs.map(img=>`<img class="img-thumb" src="${img}" onclick="showLightbox('${img}')">`).join('')}</div>`:''}
+  </div>`;
+}
+
+function deleteSurvey(id) {
+  if (!confirm('Delete this survey?')) return;
+  DB.delete('surveys', id);
+  deleteImgs('survey', id);
+  toast('Survey deleted.','error');
+  if (currentProjectId) renderProjectSurvey(currentProjectId);
+  renderGlobalSurveys();
+}
+
+function renderGlobalSurveys() {
+  const search = (document.getElementById('surveySearch')?.value||'').toLowerCase();
+  let surveys  = DB.get('surveys');
+  if (search) surveys = surveys.filter(s=>s.room.toLowerCase().includes(search)||(getProj(s.projectId)?.name||'').toLowerCase().includes(search));
+  document.getElementById('globalSurveyList').innerHTML = surveys.length
+    ? surveys.sort((a,b)=>b.createdAt-a.createdAt).map(s=>{const p=getProj(s.projectId); return `<div class="card mb-2">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-weight:700">${esc(s.room)}</div>
+          ${p?`<span class="badge badge-survey" style="cursor:pointer" onclick="openProjectDetail('${p.id}')">${esc(p.name)}</span>`:''}
+          <div style="flex:1"></div>
+          <button class="btn btn-sm btn-danger" onclick="deleteSurvey('${s.id}')">Delete</button>
+        </div>
+        ${surveyCard(s)}</div>`;}).join('')
+    : `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/></svg><h3>No surveys yet</h3></div>`;
+}
+
+/* ============================================================
+   BLOCK DIAGRAM
+   ============================================================ */
+let tempDiagramFile    = null;
+let tempComponentTags  = [];
+
+function openDiagramModal(projId) {
+  tempDiagramFile = null; tempComponentTags = [];
+  document.getElementById('diagramId').value      = '';
+  document.getElementById('diagramNotes').value   = '';
+  document.getElementById('diagramFilePreview').innerHTML = '';
+  document.getElementById('componentTagsList').innerHTML  = '';
+  document.getElementById('componentTagInput').value      = '';
+
+  const existing = DB.get('diagrams').find(d=>d.projectId===(projId||currentProjectId));
+  if (existing) {
+    document.getElementById('diagramId').value    = existing.id;
+    document.getElementById('diagramNotes').value = existing.notes||'';
+    tempComponentTags = Array.isArray(existing.tags)?existing.tags:[];
+    const storedImg = loadImgs('diagram', existing.id);
+    if (storedImg.length) {
+      tempDiagramFile = storedImg[0];
+      document.getElementById('diagramFilePreview').innerHTML = `<img src="${tempDiagramFile}" style="max-width:100%;border-radius:8px;margin-top:10px">`;
+    }
+    renderComponentTags();
+  }
+  populateProjectSelect('diagramProjectId', projId||currentProjectId);
+  openModal('diagramModal');
+}
+
+function handleDiagramFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    tempDiagramFile = ev.target.result;
+    document.getElementById('diagramFilePreview').innerHTML = file.type.startsWith('image/')
+      ? `<img src="${tempDiagramFile}" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:10px">`
+      : `<div style="padding:10px;background:var(--surface-2);border-radius:6px;margin-top:8px;font-size:.85rem">${esc(file.name)}</div>`;
+  };
+  r.readAsDataURL(file);
+}
+
+function addComponentTag() {
+  const val = document.getElementById('componentTagInput').value.trim();
+  if (!val) return;
+  tempComponentTags.push(val);
+  document.getElementById('componentTagInput').value = '';
+  renderComponentTags();
+}
+
+function renderComponentTags() {
+  document.getElementById('componentTagsList').innerHTML = tempComponentTags.map((t,i)=>
+    `<span class="comp-tag">${esc(t)}<button onclick="removeTag(${i})">×</button></span>`).join('');
+}
+
+function removeTag(i) { tempComponentTags.splice(i,1); renderComponentTags(); }
+
+function saveDiagram() {
+  const projId = document.getElementById('diagramProjectId').value;
+  if (!projId) { toast('Please select a project.','error'); return; }
+  const id = document.getElementById('diagramId').value || uid();
+  const diagram = { id, projectId:projId, notes:document.getElementById('diagramNotes').value.trim(), tags:[...tempComponentTags], updatedAt:Date.now() };
+  DB.save('diagrams', diagram);
+  if (tempDiagramFile) saveImgs('diagram', id, [tempDiagramFile]);
+  closeModal('diagramModal');
+  toast('Diagram saved to Google Sheets!');
+  if (currentProjectId) renderProjectDiagram(currentProjectId);
+  renderGlobalDiagrams();
+}
+
+function renderProjectDiagram(projId) {
+  const d = DB.get('diagrams').find(x=>x.projectId===projId);
+  if (!d) { document.getElementById('diagramContent').innerHTML=`<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/></svg><h3>No diagram yet</h3></div>`; return; }
+  const imgs = loadImgs('diagram', d.id);
+  document.getElementById('diagramContent').innerHTML = `<div class="card">
+    <div class="diagram-canvas mb-2">
+      ${imgs.length?`<img src="${imgs[0]}" onclick="showLightbox('${imgs[0]}')" style="cursor:zoom-in">`:`<div class="diagram-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/></svg><div>No diagram uploaded</div></div>`}
+    </div>
+    ${d.tags&&d.tags.length?`<div><div class="info-label mb-2">Components</div><div class="component-tags">${d.tags.map(t=>`<span class="comp-tag">${esc(t)}</span>`).join('')}</div></div>`:''}
+    ${d.notes?`<div class="mt-2"><div class="info-label mb-2">Design Notes</div><div style="font-size:.875rem;white-space:pre-wrap">${esc(d.notes)}</div></div>`:''}
+  </div>`;
+}
+
+function renderGlobalDiagrams() {
+  const search = (document.getElementById('diagramSearch')?.value||'').toLowerCase();
+  let diags    = DB.get('diagrams');
+  if (search) diags = diags.filter(d=>(getProj(d.projectId)?.name||'').toLowerCase().includes(search)||(d.notes||'').toLowerCase().includes(search));
+  document.getElementById('globalDiagramList').innerHTML = diags.length
+    ? `<div class="project-grid">${diags.sort((a,b)=>b.updatedAt-a.updatedAt).map(d=>{const p=getProj(d.projectId);const imgs=loadImgs('diagram',d.id); return `<div class="card" style="cursor:pointer" onclick="openProjectDetail('${d.projectId}')">
+        <div class="card-header"><div class="card-title">${p?esc(p.name):'Unknown'}</div>${p?badge(p.status):''}</div>
+        ${imgs.length?`<img src="${imgs[0]}" style="width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:10px">`:''}
+        ${d.tags&&d.tags.length?`<div class="component-tags">${d.tags.map(t=>`<span class="comp-tag">${esc(t)}</span>`).join('')}</div>`:''}
+        ${d.notes?`<p style="font-size:.8rem;color:var(--text-secondary);margin-top:8px">${esc(d.notes.slice(0,100))}${d.notes.length>100?'…':''}</p>`:''}
+      </div>`;}).join('')}</div>`
+    : `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/></svg><h3>No diagrams yet</h3></div>`;
+}
+
+/* ============================================================
+   BOQ
+   ============================================================ */
+function renderProjectBOQ(projId) {
+  editingBOQProjectId = projId;
+  const boqData = DB.get('boq').find(b=>b.projectId===projId);
+  const items   = (boqData?.items)||[];
+  document.getElementById('boqContent').innerHTML = `<div class="card"><div class="table-wrap">
+    <table id="boqTable">
+      <thead><tr>
+        <th style="width:32px">#</th><th>Item Name</th><th>Brand</th><th>Model</th>
+        <th style="width:70px;text-align:right">Qty</th>
+        <th style="width:120px;text-align:right">Unit (₹)</th>
+        <th style="width:120px;text-align:right">Total (₹)</th>
+        <th>Remarks</th><th style="width:40px"></th>
+      </tr></thead>
+      <tbody id="boqTbody"></tbody>
+      <tfoot><tr class="boq-total-row">
+        <td colspan="6" style="text-align:right;padding:12px 14px">TOTAL PROJECT COST</td>
+        <td class="td-mono" style="text-align:right;padding:12px 14px" id="boqTotal">₹0.00</td>
+        <td colspan="2"></td>
+      </tr></tfoot>
+    </table>
+  </div></div>`;
+  if (items.length) items.forEach((item,i)=>appendBOQRow(item,i));
+  else appendBOQRow({},0);
+  calcBOQTotal();
+}
+
+function appendBOQRow(item) {
+  const tbody  = document.getElementById('boqTbody');
+  if (!tbody) return;
+  const rowIdx = tbody.children.length;
+  const tr     = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:var(--text-muted);font-size:.8rem">${rowIdx+1}</td>
+    <td><input class="boq-input" type="text" placeholder="Item name" value="${esc(item.name||'')}"></td>
+    <td><input class="boq-input" type="text" placeholder="Brand" value="${esc(item.brand||'')}"></td>
+    <td><input class="boq-input" type="text" placeholder="Model" value="${esc(item.model||'')}"></td>
+    <td><input class="boq-input" type="number" min="0" placeholder="0" value="${item.qty||''}" oninput="calcBOQTotal()"></td>
+    <td><input class="boq-input" type="number" min="0" placeholder="0.00" value="${item.unitPrice||''}" oninput="calcBOQTotal()"></td>
+    <td class="td-mono" style="text-align:right" id="boqRowTotal${rowIdx}">₹0.00</td>
+    <td><input class="boq-input" type="text" placeholder="Remarks" value="${esc(item.remarks||'')}"></td>
+    <td><button class="btn-ghost" onclick="removeBOQRow(this)" title="Remove">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6"/><path d="M14,11v6"/><path d="M9,6V4h6v2"/></svg>
+    </button></td>`;
+  tbody.appendChild(tr);
+  calcBOQTotal();
+}
+
+function addBOQRow() { if (!document.getElementById('boqTbody')) return; appendBOQRow({}); saveBOQ(); }
+
+function removeBOQRow(btn) {
+  btn.closest('tr').remove();
+  document.querySelectorAll('#boqTbody tr').forEach((r,i)=>{ r.cells[0].textContent=i+1; r.cells[6].id=`boqRowTotal${i}`; });
+  calcBOQTotal(); saveBOQ();
+}
+
+function calcBOQTotal() {
+  let grand = 0;
+  document.querySelectorAll('#boqTbody tr').forEach((r,i)=>{
+    const inputs = r.querySelectorAll('input');
+    const qty   = parseFloat(inputs[3]?.value)||0;
+    const unit  = parseFloat(inputs[4]?.value)||0;
+    const total = qty*unit; grand += total;
+    const cell  = document.getElementById(`boqRowTotal${i}`);
+    if (cell) cell.textContent = fmtCurr(total);
+  });
+  const el = document.getElementById('boqTotal');
+  if (el) el.textContent = fmtCurr(grand);
+}
+
+function getBOQItems() {
+  return [...document.querySelectorAll('#boqTbody tr')].map(r=>{
+    const inputs = r.querySelectorAll('input');
+    return { name:inputs[0]?.value||'', brand:inputs[1]?.value||'', model:inputs[2]?.value||'', qty:inputs[3]?.value||'', unitPrice:inputs[4]?.value||'', remarks:inputs[5]?.value||'' };
+  }).filter(i=>i.name);
+}
+
+function saveBOQ() {
+  if (!editingBOQProjectId) return;
+  const items    = getBOQItems();
+  const existing = DB.get('boq').find(b=>b.projectId===editingBOQProjectId);
+  const boq      = { id:existing?.id||uid(), projectId:editingBOQProjectId, items, updatedAt:Date.now() };
+  DB.save('boq', boq);
+}
+
+// Auto-save BOQ on any input
+document.addEventListener('input', e => { if (e.target.closest('#boqTbody')) { calcBOQTotal(); saveBOQ(); } });
+
+function exportBOQCSV() {
+  saveBOQ();
+  const projId   = editingBOQProjectId||currentProjectId;
+  const p        = getProj(projId);
+  const boqData  = DB.get('boq').find(b=>b.projectId===projId);
+  const items    = boqData?.items||[];
+  if (!items.length) { toast('No BOQ items to export.','error'); return; }
+
+  let csv = 'Item Name,Brand,Model,Quantity,Unit Price (INR),Total Price (INR),Remarks\n';
+  let grand = 0;
+  items.forEach(i => {
+    const total = (parseFloat(i.qty)||0)*(parseFloat(i.unitPrice)||0);
+    grand += total;
+    csv += `"${i.name}","${i.brand}","${i.model}",${i.qty},${i.unitPrice},${total.toFixed(2)},"${i.remarks}"\n`;
+  });
+  csv += `,,,,,"TOTAL",${grand.toFixed(2)}\n`;
+
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `BOQ_${(p?.name||'Project').replace(/\s+/g,'_')}_${today()}.csv`;
+  a.click();
+  toast('BOQ exported as CSV!');
+}
+
+function renderGlobalBOQ() {
+  const search = (document.getElementById('boqSearch')?.value||'').toLowerCase();
+  let boqs     = DB.get('boq');
+  if (search) boqs = boqs.filter(b=>(getProj(b.projectId)?.name||'').toLowerCase().includes(search));
+  document.getElementById('globalBOQList').innerHTML = boqs.length
+    ? boqs.sort((a,b)=>b.updatedAt-a.updatedAt).map(b=>{
+        const p = getProj(b.projectId);
+        const total = (b.items||[]).reduce((s,i)=>s+(parseFloat(i.qty)||0)*(parseFloat(i.unitPrice)||0),0);
+        return `<div class="card mb-2">
+          <div class="card-header">
+            <div class="card-title" style="cursor:pointer" onclick="openProjectDetail('${b.projectId}')">${p?esc(p.name):'Unknown'} ${p?badge(p.status):''}</div>
+            <div class="flex gap-2">
+              <span class="mono" style="font-size:.85rem;font-weight:700;color:var(--success)">${fmtCurr(total)}</span>
+              <button class="btn btn-sm btn-secondary" onclick="editingBOQProjectId='${b.projectId}';exportBOQCSV()">Export CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Item</th><th>Brand</th><th>Model</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit (₹)</th><th style="text-align:right">Total (₹)</th></tr></thead>
+            <tbody>${(b.items||[]).slice(0,5).map(i=>`<tr>
+              <td>${esc(i.name)}</td><td>${esc(i.brand)}</td><td class="mono">${esc(i.model)}</td>
+              <td class="td-mono" style="text-align:right">${i.qty}</td>
+              <td class="td-mono" style="text-align:right">${fmtCurr(parseFloat(i.unitPrice)||0)}</td>
+              <td class="td-mono" style="text-align:right">${fmtCurr((parseFloat(i.qty)||0)*(parseFloat(i.unitPrice)||0))}</td>
+            </tr>`).join('')}
+            ${b.items.length>5?`<tr><td colspan="6" style="text-align:center;color:var(--text-muted);font-size:.78rem">+${b.items.length-5} more items — open project to view all</td></tr>`:''}</tbody>
+          </table></div>
+        </div>`;}).join('')
+    : `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><h3>No BOQ data yet</h3></div>`;
+}
+
+/* ============================================================
+   TASKS
+   ============================================================ */
+function openTaskModal(projId, global) {
+  document.getElementById('taskId').value    = '';
+  document.getElementById('taskName').value  = '';
+  document.getElementById('taskNotes').value = '';
+  document.getElementById('taskStatus').value= 'Pending';
+  document.getElementById('taskModalTitle').textContent = 'Add Task';
+  populateProjectSelect('taskProjectId', projId||currentProjectId);
+  populateMemberSelect('taskAssignee');
+  openModal('taskModal');
+}
+
+function editTask(id) {
+  const t = DB.getOne('tasks', id); if (!t) return;
+  document.getElementById('taskId').value    = id;
+  document.getElementById('taskName').value  = t.name;
+  document.getElementById('taskNotes').value = t.notes||'';
+  document.getElementById('taskStatus').value= t.status;
+  document.getElementById('taskModalTitle').textContent = 'Edit Task';
+  populateProjectSelect('taskProjectId', t.projectId);
+  populateMemberSelect('taskAssignee', t.assignedTo);
+  openModal('taskModal');
+}
+
+function saveTask() {
+  const name       = document.getElementById('taskName').value.trim();
+  const assignedTo = document.getElementById('taskAssignee').value;
+  const projId     = document.getElementById('taskProjectId').value;
+  if (!name||!assignedTo||!projId) { toast('Please fill all required fields.','error'); return; }
+  const id       = document.getElementById('taskId').value || uid();
+  const existing = DB.getOne('tasks', id);
+  const task     = { id, projectId:projId, name, assignedTo, status:document.getElementById('taskStatus').value,
+                     notes:document.getElementById('taskNotes').value.trim(),
+                     createdAt:existing?existing.createdAt:Date.now(), updatedAt:Date.now() };
+  DB.save('tasks', task);
+  closeModal('taskModal');
+  toast(existing?'Task updated!':'Task added!');
+  if (currentProjectId) { renderProjectTasks(currentProjectId); renderProjectOverview(getProj(currentProjectId)); }
+  renderGlobalTasks();
+  renderDashboard();
+}
+
+function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  DB.delete('tasks', id);
+  toast('Task deleted.','error');
+  if (currentProjectId) { renderProjectTasks(currentProjectId); renderProjectOverview(getProj(currentProjectId)); }
+  renderGlobalTasks();
+}
+
+function cycleTaskStatus(id) {
+  const t = DB.getOne('tasks', id); if (!t) return;
+  const order = ['Pending','In Progress','Done'];
+  t.status = order[(order.indexOf(t.status)+1)%order.length];
+  t.updatedAt = Date.now();
+  DB.save('tasks', t);
+  toast(`Task → ${t.status}`);
+  if (currentProjectId) { renderProjectTasks(currentProjectId); renderProjectOverview(getProj(currentProjectId)); }
+  renderGlobalTasks();
+  renderDashboard();
+}
+
+function renderProjectTasks(projId) {
+  const tasks = DB.get('tasks').filter(t=>t.projectId===projId);
+  document.getElementById('tasksContent').innerHTML = tasks.length
+    ? `<div class="task-list">${tasks.map(t=>taskRow(t)).join('')}</div>`
+    : `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9,11 12,14 22,4"/></svg><h3>No tasks yet</h3></div>`;
+}
+
+function taskRow(t) {
+  const done = t.status==='Done';
+  return `<div class="task-item ${done?'done':''}">
+    <div class="task-check ${done?'checked':''}" onclick="cycleTaskStatus('${t.id}')" title="Click to change status">
+      ${done?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20,6 9,17 4,12"/></svg>':''}
+    </div>
+    <div style="flex:1">
+      <div class="task-name" style="${done?'text-decoration:line-through;opacity:.6':''}">${esc(t.name)}</div>
+      ${t.notes?`<div style="font-size:.75rem;color:var(--text-muted)">${esc(t.notes)}</div>`:''}
+    </div>
+    <div class="task-assignee">${esc(t.assignedTo.split(' ')[0])}</div>
+    ${badge(t.status,'task')}
+    <button class="btn-ghost" onclick="editTask('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+    <button class="btn-ghost" onclick="deleteTask('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg></button>
+  </div>`;
+}
+
+function renderGlobalTasks() {
+  const search  = (document.getElementById('taskSearch')?.value||'').toLowerCase();
+  const statusF = document.getElementById('taskStatusFilter')?.value||'';
+  let tasks     = DB.get('tasks');
+  if (search)  tasks = tasks.filter(t=>t.name.toLowerCase().includes(search)||t.assignedTo.toLowerCase().includes(search));
+  if (statusF) tasks = tasks.filter(t=>t.status===statusF);
+  document.getElementById('globalTaskList').innerHTML = tasks.length
+    ? `<div class="card"><div class="task-list">${tasks.sort((a,b)=>b.createdAt-a.createdAt).map(t=>{const p=getProj(t.projectId); return `<div class="task-item ${t.status==='Done'?'done':''}">
+        <div class="task-check ${t.status==='Done'?'checked':''}" onclick="cycleTaskStatus('${t.id}')">
+          ${t.status==='Done'?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20,6 9,17 4,12"/></svg>':''}
+        </div>
+        <div style="flex:1">
+          <div class="task-name" style="${t.status==='Done'?'text-decoration:line-through;opacity:.6':''}">${esc(t.name)}</div>
+          ${p?`<div style="font-size:.75rem;color:var(--text-muted);cursor:pointer" onclick="openProjectDetail('${p.id}')">${esc(p.name)}</div>`:''}
+        </div>
+        <div class="task-assignee">${esc(t.assignedTo)}</div>
+        ${badge(t.status,'task')}
+        <button class="btn-ghost" onclick="editTask('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-ghost" onclick="deleteTask('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/></svg></button>
+      </div>`;}).join('')}</div></div>`
+    : `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9,11 12,14 22,4"/></svg><h3>No tasks found</h3></div>`;
+}
+
+/* ============================================================
+   DAILY REPORTS
+   ============================================================ */
+let tempReportImages = [];
+
+function openReportModal(projId, global) {
+  tempReportImages = [];
+  document.getElementById('reportId').value        = '';
+  document.getElementById('reportDate').value      = today();
+  document.getElementById('reportWorkDone').value  = '';
+  document.getElementById('reportIssues').value    = '';
+  document.getElementById('reportNextPlan').value  = '';
+  document.getElementById('reportImgPreview').innerHTML = '';
+  populateProjectSelect('reportProjectId', projId||currentProjectId);
+  populateMemberSelect('reportedBy');
+  openModal('reportModal');
+}
+
+function handleReportImages(e) {
+  Array.from(e.target.files).forEach(f => {
+    const r = new FileReader();
+    r.onload = ev => { tempReportImages.push(ev.target.result); renderImgPreviews('reportImgPreview',tempReportImages); };
+    r.readAsDataURL(f);
+  });
+}
+
+function saveReport() {
+  const projId   = document.getElementById('reportProjectId').value;
+  const date     = document.getElementById('reportDate').value;
+  const workDone = document.getElementById('reportWorkDone').value.trim();
+  if (!projId||!date||!workDone) { toast('Please fill required fields.','error'); return; }
+  const id     = document.getElementById('reportId').value || uid();
+  const report = { id, projectId:projId, date, workDone,
+                   issues:    document.getElementById('reportIssues').value.trim(),
+                   nextPlan:  document.getElementById('reportNextPlan').value.trim(),
+                   reportedBy:document.getElementById('reportedBy').value,
+                   createdAt: Date.now() };
+  DB.save('reports', report);
+  if (tempReportImages.length) saveImgs('report', id, tempReportImages);
+  closeModal('reportModal');
+  toast('Report saved to Google Sheets!');
+  if (currentProjectId) renderProjectReports(currentProjectId);
+  renderGlobalReports();
+  renderDashboard();
+}
+
+function deleteReport(id) {
+  if (!confirm('Delete this report?')) return;
+  DB.delete('reports', id);
+  deleteImgs('report', id);
+  toast('Report deleted.','error');
+  if (currentProjectId) renderProjectReports(currentProjectId);
+  renderGlobalReports();
+}
+
+function renderProjectReports(projId) {
+  const reports = DB.get('reports').filter(r=>r.projectId===projId);
+  document.getElementById('reportsContent').innerHTML = reports.length
+    ? `<div class="report-timeline">${reports.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(r=>reportCard(r)).join('')}</div>`
+    : `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/></svg><h3>No reports yet</h3></div>`;
+}
+
+function reportCard(r) {
+  const imgs = loadImgs('report', r.id);
+  return `<div class="report-item">
+    <div class="report-date">${fmtDate(r.date)}${r.reportedBy?` · ${esc(r.reportedBy)}`:''}</div>
+    <div class="report-section"><div class="report-section-label">Work Done</div><div class="report-section-text">${esc(r.workDone)}</div></div>
+    ${r.issues?`<div class="report-section"><div class="report-section-label" style="color:var(--danger)">Issues</div><div class="report-section-text">${esc(r.issues)}</div></div>`:''}
+    ${r.nextPlan?`<div class="report-section"><div class="report-section-label" style="color:var(--success)">Next Plan</div><div class="report-section-text">${esc(r.nextPlan)}</div></div>`:''}
+    ${imgs.length?`<div class="img-gallery">${imgs.map(img=>`<img class="img-thumb" src="${img}" onclick="showLightbox('${img}')">`).join('')}</div>`:''}
+    <div style="margin-top:10px;display:flex;justify-content:flex-end">
+      <button class="btn btn-sm btn-danger" onclick="deleteReport('${r.id}')">Delete</button>
+    </div>
+  </div>`;
+}
+
+function renderGlobalReports() {
+  const search = (document.getElementById('reportSearch')?.value||'').toLowerCase();
+  let reports  = DB.get('reports');
+  if (search) reports = reports.filter(r=>r.workDone.toLowerCase().includes(search)||(getProj(r.projectId)?.name||'').toLowerCase().includes(search));
+  document.getElementById('globalReportList').innerHTML = reports.length
+    ? `<div class="report-timeline">${reports.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(r=>{const p=getProj(r.projectId); return `<div class="report-item">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div class="report-date" style="margin:0">${fmtDate(r.date)}</div>
+          ${p?`<span class="badge badge-survey" style="cursor:pointer" onclick="openProjectDetail('${p.id}')">${esc(p.name)}</span>`:''}
+          <div style="flex:1"></div>
+          <button class="btn btn-sm btn-danger" onclick="deleteReport('${r.id}')">Delete</button>
+        </div>
+        <div class="report-section"><div class="report-section-label">Work Done</div><div class="report-section-text">${esc(r.workDone)}</div></div>
+        ${r.issues?`<div class="report-section"><div class="report-section-label" style="color:var(--danger)">Issues</div><div class="report-section-text">${esc(r.issues)}</div></div>`:''}
+        ${r.nextPlan?`<div class="report-section"><div class="report-section-label" style="color:var(--success)">Next Plan</div><div class="report-section-text">${esc(r.nextPlan)}</div></div>`:''}
+      </div>`;}).join('')}</div>`
+    : `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><h3>No reports yet</h3></div>`;
+}
+
+/* ============================================================
+   SELECT POPULATION HELPERS
+   ============================================================ */
+function populateProjectSelect(selectId, selectedId) {
+  const el = document.getElementById(selectId); if (!el) return;
+  el.innerHTML = `<option value="">— Select Project —</option>` +
+    DB.get('projects').map(p=>`<option value="${p.id}" ${p.id===selectedId?'selected':''}>${esc(p.name)}</option>`).join('');
+}
+
+function populateMemberSelect(selectId, selected) {
+  const el = document.getElementById(selectId); if (!el) return;
+  el.innerHTML = TEAM_MEMBERS.map(m=>`<option value="${esc(m)}" ${m===selected?'selected':''}>${esc(m)}</option>`).join('');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function init() {
+  document.getElementById('topbarDate').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+
+  populateMemberCheckboxes([]);
+
+  try {
+    setLoadingMsg('Loading your data…');
+    await loadAllData();
+    hideLoading();
+    renderDashboard();
+    setSyncStatus('idle');
+  } catch(e) {
+    console.error('Init error:', e);
+    hideLoading();
+    toast('Could not load data from Sheets. Check your connection.','error');
+    setSyncStatus('error');
+    renderDashboard();
+  }
+}
+
+/* ============================================================
+   STARTUP: Show setup or load data
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', async () => {
+  if (!GAS_URL) {
+    // No URL configured — show setup screen
+    document.getElementById('loadingOverlay').style.display='none';
+    document.getElementById('setupScreen').classList.add('open');
+  } else {
+    // URL exists — attempt to load
+    await init();
+  }
+});
+
+// Close modals on overlay click
+['projectModal','surveyModal','diagramModal','taskModal','reportModal','gsSettingsModal'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('click', function(e){ if(e.target===this) closeModal(id); });
+});
+</script>
+</body>
+</html>
